@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GvG Strategy Board – Where Winds Meet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+  :root {
+    --red: #c0392b;
+    --red-light: #e74c3c;
+    --blue: #2980b9;
+    --blue-light: #3498db;
+    --gold: #f0c040;
+    --panel-bg: rgba(10,12,18,0.92);
+    --border: rgba(200,180,120,0.35);
+    --text: #e8dfc0;
+    --text-dim: #a09070;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0c12;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+
+  #topbar h1 { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 2px; color: var(--gold); }
+  .sep { width: 1px; height: 22px; background: var(--border); }
+
+  .tool-group { display: flex; gap: 4px; align-items: center; }
+  .tool-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  .tool-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--gold); }
+  .tool-btn.active { background: var(--gold); color: #111; border-color: var(--gold); }
+  .tool-btn.danger-btn { color: #e74c3c; border-color: #c0392b; }
+  .tool-btn.danger-btn:hover { background: rgba(192,57,43,0.2); }
+
+  /* ── CONTEXTUAL CONTROLS ── */
+  #ctx-controls {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.3s, opacity 0.3s;
+  }
+  #ctx-controls.visible { max-height: 48px; opacity: 1; }
+
+  .ctx-label { font-size: 11px; color: var(--text-dim); }
+  .color-dot { width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); cursor: pointer; }
+  .color-dot.active { border-color: #fff; transform: scale(1.1); }
+  
+  .icon-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid var(--border); border-radius: 4px; }
+  .icon-btn.active { background: rgba(240,192,64,0.25); border-color: var(--gold); }
+
+  #map-viewport { flex: 1; position: relative; overflow: hidden; cursor: crosshair; }
+  #map-container { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  #draw-canvas, #arrow-svg, #markers-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+  .marker { position: absolute; transform: translate(-50%, -50%); cursor: grab; z-index: 10; display: flex; flex-direction: column; align-items: center; }
+  .marker-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.7); box-shadow: 0 2px 8px rgba(0,0,0,0.7); }
+  .marker-icon.img-type { border: none; box-shadow: none; width: 80px; height: 80px; }
+  .marker-label { background: rgba(0,0,0,0.75); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>⚔ GvG BOARD</h1>
+  <div class="tool-group">
+    <button class="tool-btn" id="btn-draw" onclick="setMode('draw')">✏ DRAW</button>
+    <button class="tool-btn" id="btn-arrow" onclick="setMode('arrow')">➤ ARROW</button>
+    <button class="tool-btn" id="btn-marker" onclick="setMode('marker')">📍 MARKER</button>
+    <button class="tool-btn" id="btn-pan" onclick="setMode('pan')">✋ PAN</button>
+    <button class="tool-btn" id="btn-erase" onclick="setMode('erase')">⌫ ERASE</button>
+  </div>
+</div>
+
+<div id="ctx-controls"></div>
+
+<div id="map-viewport">
+  <div id="map-container">
+    <img id="map-bg" src="" alt="Map">
+    <canvas id="draw-canvas"></canvas>
+    <svg id="arrow-svg"></svg>
+    <div id="markers-layer"></div>
+  </div>
+</div>
+
+<script>
+const MAP_W = 1350, MAP_H = 760;
+let mode = 'draw', currentColor = '#c0392b', markerIcon = 'sword', strokeWidth = 4;
+let scale = 1, panX = 0, panY = 0, isPanning = false;
+let history = [];
+
+const canvas = document.getElementById('draw-canvas'), ctx = canvas.getContext('2d');
+const container = document.getElementById('map-container'), markersLayer = document.getElementById('markers-layer');
+const ctxControls = document.getElementById('ctx-controls');
+
+const MARKER_DEFS = [
+  { key:'sword', type:'emoji', char:'⚔' }, { key:'tower', type:'img', src: 'tower.png' },
+  { key:'tree', type:'img', src: 'tree.png' }, { key:'goose', type:'img', src: 'goose.png' }
+];
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-'+m).classList.add('active');
+  updateCtxControls(m);
+}
+
+function updateCtxControls(m) {
+  ctxControls.innerHTML = '';
+  if (m === 'erase') {
+    ctxControls.innerHTML = `<button class="tool-btn danger-btn" onclick="undoLast()">↩ UNDO</button>
+                             <button class="tool-btn danger-btn" onclick="clearAll()">🗑 CLEAR ALL</button>`;
+  } else if (['draw', 'arrow', 'marker'].includes(m)) {
+    // Add shared controls for drawing/markers
+    if (m !== 'marker') ctxControls.innerHTML += `<span class="ctx-label">SIZE:</span><input type="range" min="2" max="20" value="${strokeWidth}" oninput="strokeWidth=this.value">`;
+    ctxControls.innerHTML += `<span class="ctx-label" style="margin-left:10px">COLOR:</span>`;
+    ['#c0392b','#2980b9','#27ae60'].forEach(c => {
+      ctxControls.innerHTML += `<div class="color-dot" style="background:${c}" onclick="currentColor='${c}'"></div>`;
+    });
+    if (m === 'marker') {
+      ctxControls.innerHTML += `<span class="ctx-label" style="margin-left:10px">ICON:</span>`;
+      MARKER_DEFS.forEach(d => {
+        ctxControls.innerHTML += `<div class="icon-btn" onclick="markerIcon='${d.key}'">${d.type==='img' ? '<img src="'+d.src+'" width="20">' : d.char}</div>`;
+      });
+    }
+  }
+  ctxControls.classList.add('visible');
+}
+
+function placeMarker(x, y) {
+  const el = document.createElement('div');
+  el.className = 'marker';
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  const def = MARKER_DEFS.find(d => d.key === markerIcon);
+  el.innerHTML = `<div class="marker-icon ${def.type==='img'?'img-type':''}">${def.type==='img'?'<img src="'+def.src+'" width="100%">':def.char}</div>`;
+  markersLayer.appendChild(el);
+  
+  let shiftX, shiftY;
+  el.onmousedown = (e) => {
+    shiftX = e.clientX/scale - parseFloat(el.style.left);
+    shiftY = e.clientY/scale - parseFloat(el.style.top);
+    document.onmousemove = (e) => { el.style.left = (e.clientX/scale - shiftX) + 'px'; el.style.top = (e.clientY/scale - shiftY) + 'px'; };
+    document.onmouseup = () => { document.onmousemove = null; };
+  };
+  history.push({ type: 'marker', el });
+}
+
+document.getElementById('map-viewport').addEventListener('mousedown', e => {
+  if (mode === 'marker') {
+    const rect = container.getBoundingClientRect();
+    placeMarker((e.clientX - rect.left)/scale, (e.clientY - rect.top)/scale);
+  }
+});
+
+function undoLast() { history.pop()?.el?.remove(); }
+function clearAll() { markersLayer.innerHTML = ''; ctx.clearRect(0,0,canvas.width,canvas.height); }
+
+// Initialize
+setMode('draw');
+</script>
+</body>
+</html>
