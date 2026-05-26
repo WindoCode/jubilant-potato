@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GvG Strategy Board – Where Winds Meet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+  :root {
+    --red: #c0392b;
+    --red-light: #e74c3c;
+    --blue: #2980b9;
+    --blue-light: #3498db;
+    --gold: #f0c040;
+    --panel-bg: rgba(10,12,18,0.92);
+    --border: rgba(200,180,120,0.35);
+    --text: #e8dfc0;
+    --text-dim: #a09070;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0c12;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    flex-wrap: nowrap;
+    overflow: visible;
+  }
+
+  #topbar h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+  /* Tool buttons */
+  .tool-group { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+  .tool-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .tool-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--gold); }
+  .tool-btn.active { background: var(--gold); color: #111; border-color: var(--gold); }
+  .tool-btn.red-team { border-color: var(--red); color: var(--red-light); }
+  .tool-btn.red-team.active { background: var(--red); color: #fff; }
+  .tool-btn.blue-team { border-color: var(--blue); color: var(--blue-light); }
+  .tool-btn.blue-team.active { background: var(--blue); color: #fff; }
+  .tool-btn.danger-btn { color: #e74c3c; border-color: #c0392b; }
+  .tool-btn.danger-btn:hover { background: rgba(192,57,43,0.2); }
+
+  /* ── CONTEXTUAL CONTROLS ROW ── */
+  #ctx-controls {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px 6px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease, padding-bottom 0.3s ease;
+    z-index: 99;
+  }
+  #ctx-controls.visible {
+    max-height: 48px;
+    opacity: 1;
+    padding-bottom: 6px;
+  }
+
+  .ctx-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Color swatches – bigger, more breathing room */
+  .color-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
+  .color-dot:hover { transform: scale(1.25); box-shadow: 0 0 6px rgba(255,255,255,0.35); }
+  .color-dot.active {
+    border-color: #fff;
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+  }
+
+  #stroke-size {
+    width: 80px;
+    accent-color: var(--gold);
+    cursor: pointer;
+  }
+
+  #zoom-display {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    min-width: 44px;
+    text-align: center;
+  }
+
+  /* ── ICON BUTTONS – improved contrast ── */
+  .icon-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(200,180,120,0.4);
+    border-radius: 4px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { background: rgba(255,255,255,0.15); border-color: var(--gold); box-shadow: 0 0 6px rgba(240,192,64,0.3); }
+  .icon-btn.active {
+    background: rgba(240,192,64,0.25);
+    border-color: var(--gold);
+    box-shadow: 0 0 6px rgba(240,192,64,0.4);
+  }
+  .icon-btn img {
+    width: 22px; height: 22px;
+    object-fit: contain;
+    image-rendering: crisp-edges;
+    filter: brightness(1.15) drop-shadow(0 1px 1px rgba(0,0,0,0.5));
+  }
+  .icon-btn .icon-emoji {
+    font-size: 16px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+  }
+
+  /* ── MAP VIEWPORT ── */
+  #map-viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+  #map-viewport.panning { cursor: grab; }
+  #map-viewport.panning-active { cursor: grabbing; }
+
+  /* ── MAP CONTAINER (transformed) ── */
+  #map-container {
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: 0 0;
+  }
+
+  /* Background image */
+  #map-bg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    pointer-events: none;
+    display: block;
+  }
+
+  /* Drawing canvas */
+  #draw-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Markers layer */
+  #markers-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: all;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    z-index: 10;
+  }
+  .marker-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    border: 2px solid rgba(255,255,255,0.7);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    transition: transform 0.15s;
+    overflow: hidden;
+  }
+  .marker:hover .marker-icon { transform: scale(1.2); }
+  .marker-label {
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 2px;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+
+  /* Arrow layer */
+  #arrow-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  /* ── BOTTOM STATUS BAR ── */
+  #statusbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 4px 14px;
+    background: var(--panel-bg);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    z-index: 100;
+  }
+  #statusbar span { white-space: nowrap; }
+  #coords { color: var(--gold); font-weight: 600; }
+
+  /* ── CONTEXT MENU ── */
+  #ctx-menu {
+    position: fixed;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 0;
+    z-index: 999;
+    min-width: 140px;
+    display: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  }
+  #ctx-menu div {
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.1s;
+  }
+  #ctx-menu div:hover { background: rgba(255,255,255,0.08); color: var(--gold); }
+  #ctx-menu .danger:hover { color: #e74c3c; }
+  #ctx-menu hr { border: none; border-top: 1px solid var(--border); margin: 3px 0; }
+
+  /* ── LABEL EDIT POPUP ── */
+  #label-popup {
+    position: fixed;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.8);
+  }
+  #label-popup input {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 3px;
+    width: 160px;
+    outline: none;
+  }
+  #label-popup input:focus { border-color: var(--gold); }
+  #label-popup button {
+    margin-left: 6px;
+    background: var(--gold);
+    border: none;
+    color: #111;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  /* ── LEGEND ── */
+  #legend {
+    position: absolute;
+    bottom: 8px; right: 8px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 50;
+  }
+  #legend .leg-title {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: var(--gold);
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  #legend .leg-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: var(--text-dim); }
+  #legend .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── MOBILE HAMBURGER ── */
+  #menu-toggle {
+    display: none;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--gold);
+    font-size: 18px;
+    width: 34px; height: 34px;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── MOBILE OVERRIDES ── */
+  @media (max-width: 640px) {
+    body { overflow: hidden; }
+
+    #menu-toggle { display: flex; }
+
+    #topbar {
+      flex-wrap: wrap;
+      padding: 6px 10px;
+      gap: 6px;
+      position: relative;
+    }
+
+    #topbar h1 { font-size: 11px; letter-spacing: 1px; flex: 1; }
+
+    /* All toolbar sections hidden by default on mobile, shown when menu open */
+    #topbar .sep,
+    #topbar .tool-group { display: none; }
+    #topbar.open .sep,
+    #topbar.open .tool-group {
+      display: flex;
+    }
+
+    /* Make the tool groups full-width rows */
+    #topbar.open { flex-direction: column; align-items: flex-start; }
+    #topbar.open .tool-group { flex-wrap: wrap; width: 100%; }
+    #topbar.open .sep { width: 100%; height: 1px; }
+
+    /* Bigger tap targets on mobile */
+    .tool-btn {
+      padding: 7px 12px;
+      font-size: 13px;
+      min-height: 36px;
+    }
+    .icon-btn { width: 40px; height: 40px; }
+    .icon-btn .icon-emoji { font-size: 18px; }
+    .color-dot { width: 28px; height: 28px; }
+
+    /* Contextual controls scrollable */
+    #ctx-controls {
+      flex-wrap: wrap;
+      max-height: none !important;
+      overflow-x: auto;
+      padding: 6px 10px;
+    }
+    #ctx-controls.visible { max-height: 80px !important; }
+
+    /* Hide legend on very small screens to save space */
+    #legend { display: none; }
+
+    /* Status bar shorter */
+    #statusbar { font-size: 10px; gap: 8px; padding: 3px 10px; }
+    #statusbar span:first-child { display: none; }
+
+    /* Zoom display */
+    #zoom-display { min-width: 36px; font-size: 11px; }
+
+    /* Context menu bigger tap targets */
+    #ctx-menu div { padding: 12px 18px; font-size: 14px; }
+  }
+
+  @media (max-width: 380px) {
+    #topbar h1 { font-size: 10px; }
+    .tool-btn { padding: 6px 9px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<div id="topbar">
+  <h1>⚔ GvG BOARD</h1>
+  <button id="menu-toggle" onclick="document.getElementById('topbar').classList.toggle('open')" title="Toggle menu">☰</button>
+  <div class="sep"></div>
+
+  <!-- Mode -->
+  <div class="tool-group">
+    <button class="tool-btn active" id="btn-draw" onclick="setMode('draw')">✏ DRAW</button>
+    <button class="tool-btn" id="btn-arrow" onclick="setMode('arrow')">➤ ARROW</button>
+    <button class="tool-btn" id="btn-marker" onclick="setMode('marker')">📍 MARKER</button>
+    <button class="tool-btn" id="btn-pan" onclick="setMode('pan')">✋ PAN</button>
+  </div>
+  <div class="sep"></div>
+
+  <!-- Team color presets -->
+  <div class="tool-group">
+    <span style="font-size:11px;color:var(--text-dim);letter-spacing:1px;">TEAM:</span>
+    <button class="tool-btn red-team active" id="btn-red" onclick="setTeam('red')">● RED</button>
+    <button class="tool-btn blue-team" id="btn-blue" onclick="setTeam('blue')">● BLUE</button>
+  </div>
+  <div class="sep"></div>
+
+  <!-- Zoom controls -->
+  <div class="tool-group">
+    <button class="tool-btn" onclick="zoomBy(-0.15)">−</button>
+    <span id="zoom-display">100%</span>
+    <button class="tool-btn" onclick="zoomBy(0.15)">+</button>
+    <button class="tool-btn" onclick="resetView()">⊡ FIT</button>
+  </div>
+  <div class="sep"></div>
+
+  <!-- Always visible undo + clear all -->
+  <div class="tool-group" id="erase-group">
+    <button class="tool-btn danger-btn" onclick="undoLast()">↩ UNDO</button>
+    <button class="tool-btn danger-btn" onclick="clearAll()" style="margin-left:2px;">🗑 CLEAR ALL</button>
+  </div>
+  <div class="sep"></div>
+
+  <!-- Screenshot -->
+  <div class="tool-group">
+    <button class="tool-btn" id="btn-screenshot" onclick="screenshot()" title="Download map as PNG">📷 SCREENSHOT</button>
+  </div>
+</div>
+
+<!-- ══ CONTEXTUAL CONTROLS ROW ══ -->
+<div id="ctx-controls">
+  <!-- Content injected by JS based on mode -->
+</div>
+
+<!-- ══ MAP VIEWPORT ══ -->
+<div id="map-viewport">
+  <div id="map-container">
+    <img id="map-bg" src="" alt="GvG Map">
+    <canvas id="draw-canvas"></canvas>
+    <svg id="arrow-svg"></svg>
+    <div id="markers-layer"></div>
+    <div id="legend">
+      <div class="leg-title">LEGEND</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#c0392b"></div>Red Team</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#2980b9"></div>Blue Team</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#27ae60"></div>Objective</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#f39c12"></div>Warning</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STATUS BAR ══ -->
+<div id="statusbar">
+  <span>SCROLL TO ZOOM &nbsp;|&nbsp; MIDDLE-CLICK / PAN MODE TO PAN &nbsp;|&nbsp; PINCH TO ZOOM ON TOUCH</span>
+  <span style="margin-left:auto;color:var(--text-dim);">Made by Windo.</span>
+</div>
+
+<!-- ══ CONTEXT MENU ══ -->
+<div id="ctx-menu">
+  <div onclick="ctxAction('label')">✏ Edit Label</div>
+  <div onclick="ctxAction('color')">🎨 Change Color</div>
+  <hr>
+  <div onclick="ctxAction('delete')" class="danger">✕ Delete</div>
+</div>
+
+<!-- ══ LABEL POPUP ══ -->
+<div id="label-popup">
+  <input id="label-input" type="text" placeholder="Enter label..." maxlength="20">
+  <button onclick="confirmLabel()">OK</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  IMAGE ASSETS
+// ══════════════════════════════════════════════
+
+
+// Healer SVG (inline)
+const IMG_HEALER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#3a8a5c" stroke="white" stroke-width="1.5"/><rect x="13" y="7" width="6" height="18" rx="2" fill="white"/><rect x="7" y="13" width="18" height="6" rx="2" fill="white"/></svg>`)}`;
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const MAP_W = 1350, MAP_H = 760;
+
+let mode = 'draw';
+let team = 'red';
+let strokeWidth = 4;
+let currentColor = '#c0392b';
+let markerIcon = 'sword';  // key into MARKER_DEFS
+let selectedMarker = null;
+
+let scale = 1;
+let panX = 0, panY = 0;
+let isPanning = false, panStartX = 0, panStartY = 0, panStartPX = 0, panStartPY = 0;
+
+let isDrawing = false;
+let drawPath = [];
+
+let arrowStart = null;
+let tempArrow = null;
+
+let history = [];
+
+// ══════════════════════════════════════════════
+//  MARKER DEFINITIONS
+// ══════════════════════════════════════════════
+// Each entry: { key, label, type:'img'|'emoji', src|char }
+const MARKER_DEFS = [
+  { key:'sword',  label:'Sword',  type:'emoji', char:'⚔' },
+  { key:'shield', label:'Shield', type:'emoji', char:'🛡' },
+  { key:'healer', label:'Healer', type:'emoji', char:'💚' },
+  { key:'skull',  label:'Skull',  type:'emoji', char:'💀' },
+  { key:'star',   label:'Star',   type:'emoji', char:'★' },
+  { key:'check',  label:'Check',  type:'emoji', char:'✓' },
+  { key:'x',      label:'X',      type:'emoji', char:'❌' },
+  { key:'tower',  label:'Tower',  type:'img', src:'tower.png' },
+  { key:'tree',   label:'Tree',   type:'img', src:'tree.png' },
+  { key:'goose',  label:'Goose',  type:'img', src:'goose.png' },
+
+];
+
+// ══════════════════════════════════════════════
+//  ELEMENTS
+// ══════════════════════════════════════════════
+const viewport    = document.getElementById('map-viewport');
+const container   = document.getElementById('map-container');
+const mapBg       = document.getElementById('map-bg');
+const canvas      = document.getElementById('draw-canvas');
+const ctx         = canvas.getContext('2d');
+const arrowSvg    = document.getElementById('arrow-svg');
+const markersLayer= document.getElementById('markers-layer');
+const ctxMenu     = document.getElementById('ctx-menu');
+const labelPopup  = document.getElementById('label-popup');
+const labelInput  = document.getElementById('label-input');
+const zoomDisp    = document.getElementById('zoom-display');
+const ctxControls = document.getElementById('ctx-controls');
+const eraseGroup  = document.getElementById('erase-group');
+
+// ══════════════════════════════════════════════
+//  LOAD MAP
+// ══════════════════════════════════════════════
+(function initMap() {
+  mapBg.src = 'wwmgvgmap.png';
+  mapBg.onload = () => { initCanvas(); };
+})();
+
+function showImagePicker() {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:'Rajdhani',sans-serif;color:#e8dfc0;gap:16px;`;
+  overlay.innerHTML = `<div style="font-family:'Cinzel',serif;font-size:18px;color:#f0c040;letter-spacing:3px;">MAP IMAGE NOT FOUND</div><label style="background:#f0c040;color:#111;padding:10px 24px;border-radius:4px;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;">📂 LOAD MAP IMAGE<input type="file" accept="image/*" style="display:none" onchange="loadMapFromFile(event,this.closest('div[style]'))"></label>`;
+  document.body.appendChild(overlay);
+}
+
+window.loadMapFromFile = function(e, overlay) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    mapBg.src = ev.target.result;
+    mapBg.onload = () => { overlay.remove(); initCanvas(); };
+  };
+  reader.readAsDataURL(file);
+};
+
+function initCanvas() {
+  const w = mapBg.naturalWidth || MAP_W;
+  const h = mapBg.naturalHeight || MAP_H;
+  container.style.width  = w + 'px';
+  container.style.height = h + 'px';
+  canvas.width  = w;
+  canvas.height = h;
+  arrowSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  resetView();
+}
+
+// ══════════════════════════════════════════════
+//  BUILD COLOUR PALETTE
+// ══════════════════════════════════════════════
+const COLORS = [
+  '#c0392b','#e74c3c','#2980b9','#3498db',
+  '#27ae60','#f39c12','#f1c40f','#9b59b6',
+  '#ffffff','#e0c080','#00e5ff','#ff4081',
+];
+
+function buildPalette(container) {
+  COLORS.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'color-dot' + (c === currentColor ? ' active' : '');
+    d.style.background = c;
+    d.title = c;
+    d.onclick = () => {
+      container.querySelectorAll('.color-dot').forEach(x => x.classList.remove('active'));
+      d.classList.add('active');
+      currentColor = c;
+    };
+    container.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  BUILD ICON PICKER
+// ══════════════════════════════════════════════
+function buildIconPicker(container) {
+  MARKER_DEFS.forEach(def => {
+    const btn = document.createElement('div');
+    btn.className = 'icon-btn' + (def.key === markerIcon ? ' active' : '');
+    if (def.type === 'img') {
+      const img = document.createElement('img');
+      img.src = def.src;
+      img.alt = def.label;
+      btn.appendChild(img);
+    } else {
+      const span = document.createElement('span');
+      span.className = 'icon-emoji';
+      span.textContent = def.char;
+      btn.appendChild(span);
+    }
+    btn.onclick = () => {
+      container.querySelectorAll('.icon-btn').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      markerIcon = def.key;
+    };
+    container.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  CONTEXTUAL CONTROLS
+//  Draw   – Size + Color
+//  Arrow  – Size + Color
+//  Marker – Color + Icon
+//  Pan    – Nothing
+//  Erase  – (handled in topbar)
+// ══════════════════════════════════════════════
+function updateCtxControls(m) {
+  ctxControls.innerHTML = '';
+
+
+
+  if (m === 'pan' || m === 'erase') {
+    ctxControls.classList.remove('visible');
+    return;
+  }
+
+  // Size slider (Draw + Arrow)
+  if (m === 'draw' || m === 'arrow') {
+    const lbl = document.createElement('span');
+    lbl.className = 'ctx-label';
+    lbl.textContent = 'SIZE:';
+    ctxControls.appendChild(lbl);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.id = 'stroke-size';
+    slider.min = 2; slider.max = 20; slider.value = strokeWidth;
+    slider.oninput = () => { strokeWidth = +slider.value; };
+    ctxControls.appendChild(slider);
+
+    const sep = document.createElement('div');
+    sep.className = 'sep';
+    ctxControls.appendChild(sep);
+  }
+
+  // Color palette (Draw + Arrow + Marker)
+  if (m === 'draw' || m === 'arrow' || m === 'marker') {
+    const lbl = document.createElement('span');
+    lbl.className = 'ctx-label';
+    lbl.textContent = 'COLOR:';
+    ctxControls.appendChild(lbl);
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;gap:0;align-items:center;';
+    buildPalette(wrap);
+    ctxControls.appendChild(wrap);
+  }
+
+  // Icon picker (Marker only)
+  if (m === 'marker') {
+    const sep = document.createElement('div');
+    sep.className = 'sep';
+    ctxControls.appendChild(sep);
+
+    const lbl = document.createElement('span');
+    lbl.className = 'ctx-label';
+    lbl.textContent = 'ICON:';
+    ctxControls.appendChild(lbl);
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;gap:3px;align-items:center;flex-wrap:nowrap;overflow-x:auto;';
+    buildIconPicker(wrap);
+    ctxControls.appendChild(wrap);
+  }
+
+  ctxControls.classList.add('visible');
+}
+
+// ══════════════════════════════════════════════
+//  MODE / TEAM
+// ══════════════════════════════════════════════
+function setMode(m) {
+  mode = m;
+  ['draw','arrow','marker','pan','erase'].forEach(x => {
+    document.getElementById('btn-'+x)?.classList.toggle('active', x === m);
+  });
+  viewport.classList.toggle('panning', m === 'pan');
+  clearCtxMenu();
+  updateCtxControls(m);
+  // Close mobile menu
+  document.getElementById('topbar').classList.remove('open');
+}
+
+function setTeam(t) {
+  team = t;
+  document.getElementById('btn-red').classList.toggle('active', t === 'red');
+  document.getElementById('btn-blue').classList.toggle('active', t === 'blue');
+  currentColor = t === 'red' ? '#c0392b' : '#2980b9';
+  document.getElementById('topbar').classList.remove('open');
+}
+
+// Initialise ctx controls for default mode
+updateCtxControls('draw');
+
+// ══════════════════════════════════════════════
+//  ZOOM / PAN
+// ══════════════════════════════════════════════
+const MIN_SCALE = 0.3, MAX_SCALE = 5;
+
+function applyTransform() {
+  container.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  zoomDisp.textContent = Math.round(scale * 100) + '%';
+}
+
+function resetView() {
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  const w = canvas.width || MAP_W, h = canvas.height || MAP_H;
+  scale = Math.min(vw / w, vh / h) * 0.97;
+  panX = (vw - w * scale) / 2;
+  panY = (vh - h * scale) / 2;
+  applyTransform();
+}
+
+function zoomBy(delta, cx, cy) {
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  cx = cx ?? vw / 2;
+  cy = cy ?? vh / 2;
+  const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale + delta * scale));
+  const ratio = newScale / scale;
+  panX = cx - ratio * (cx - panX);
+  panY = cy - ratio * (cy - panY);
+  scale = newScale;
+  applyTransform();
+}
+
+viewport.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = viewport.getBoundingClientRect();
+  zoomBy(e.deltaY < 0 ? 0.12 : -0.12, e.clientX - rect.left, e.clientY - rect.top);
+}, { passive: false });
+
+viewport.addEventListener('mousedown', e => {
+  if (e.button === 1 || mode === 'pan') {
+    e.preventDefault();
+    isPanning = true;
+    panStartX = e.clientX; panStartY = e.clientY;
+    panStartPX = panX; panStartPY = panY;
+    viewport.classList.add('panning-active');
+  }
+});
+window.addEventListener('mousemove', e => {
+  if (isPanning) {
+    panX = panStartPX + (e.clientX - panStartX);
+    panY = panStartPY + (e.clientY - panStartY);
+    applyTransform();
+  }
+  const rect = viewport.getBoundingClientRect();
+  const mx = (e.clientX - rect.left - panX) / scale;
+  const my = (e.clientY - rect.top  - panY) / scale;
+
+});
+window.addEventListener('mouseup', e => {
+  if (e.button === 1 || isPanning) {
+    isPanning = false;
+    viewport.classList.remove('panning-active');
+  }
+});
+
+// Touch pan/zoom
+let touches = {};
+viewport.addEventListener('touchstart', e => {
+  if (e.touches.length === 1 && mode === 'pan') {
+    isPanning = true;
+    panStartX = e.touches[0].clientX; panStartY = e.touches[0].clientY;
+    panStartPX = panX; panStartPY = panY;
+  }
+  if (e.touches.length === 2) {
+    touches.dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    touches.scale = scale;
+  }
+}, { passive: true });
+viewport.addEventListener('touchmove', e => {
+  if (e.touches.length === 1 && isPanning) {
+    panX = panStartPX + (e.touches[0].clientX - panStartX);
+    panY = panStartPY + (e.touches[0].clientY - panStartY);
+    applyTransform();
+  }
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, touches.scale * (d / touches.dist)));
+    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    const rect = viewport.getBoundingClientRect();
+    zoomBy((newScale - scale) / scale, cx - rect.left, cy - rect.top);
+  }
+}, { passive: false });
+viewport.addEventListener('touchend', () => { isPanning = false; });
+
+// ══════════════════════════════════════════════
+//  CANVAS DRAWING
+// ══════════════════════════════════════════════
+function canvasPos(e) {
+  const rect = viewport.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left - panX) / scale,
+    y: (e.clientY - rect.top  - panY) / scale,
+  };
+}
+
+let markerDownPos = null;
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 0 || mode === 'pan') return;
+  clearCtxMenu();
+
+  if (mode === 'draw' || mode === 'erase') {
+    isDrawing = true;
+    drawPath = [];
+    const p = canvasPos(e);
+    drawPath.push(p);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+  if (mode === 'arrow') {
+    arrowStart = canvasPos(e);
+  }
+  if (mode === 'marker') {
+    markerDownPos = canvasPos(e);
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!isDrawing && mode !== 'arrow') return;
+
+  if (isDrawing && (mode === 'draw' || mode === 'erase')) {
+    const p = canvasPos(e);
+    drawPath.push(p);
+    ctx.lineWidth = mode === 'erase' ? strokeWidth * 4 : strokeWidth;
+    ctx.strokeStyle = mode === 'erase' ? 'rgba(0,0,0,1)' : currentColor;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalCompositeOperation = mode === 'erase' ? 'destination-out' : 'source-over';
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+
+  if (mode === 'arrow' && arrowStart) {
+    const p = canvasPos(e);
+    if (tempArrow) tempArrow.remove();
+    tempArrow = drawArrow(arrowStart.x, arrowStart.y, p.x, p.y, currentColor, true);
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (e.button !== 0) return;
+
+  if (mode === 'marker' && markerDownPos) {
+    placeMarker(markerDownPos);
+    markerDownPos = null;
+  }
+
+  if (isDrawing) {
+    isDrawing = false;
+    ctx.globalCompositeOperation = 'source-over';
+    const snap = canvas.toDataURL();
+    history.push({ type: 'stroke', snap });
+  }
+
+  if (mode === 'arrow' && arrowStart) {
+    const p = canvasPos(e);
+    if (tempArrow) tempArrow.remove();
+    tempArrow = null;
+    const dist = Math.hypot(p.x - arrowStart.x, p.y - arrowStart.y);
+    if (dist > 10) {
+      const arrow = drawArrow(arrowStart.x, arrowStart.y, p.x, p.y, currentColor, false);
+      history.push({ type: 'arrow', el: arrow });
+    }
+    arrowStart = null;
+  }
+});
+
+// ══════════════════════════════════════════════
+//  ARROWS
+// ══════════════════════════════════════════════
+let arrowId = 0;
+function drawArrow(x1, y1, x2, y2, color, temp) {
+  const id = 'arrow-' + (++arrowId);
+  const markerId = 'arrowhead-' + arrowId;
+
+  const defs = arrowSvg.querySelector('defs') || (() => {
+    const d = document.createElementNS('http://www.w3.org/2000/svg','defs');
+    arrowSvg.prepend(d); return d;
+  })();
+
+  const marker = document.createElementNS('http://www.w3.org/2000/svg','marker');
+  marker.setAttribute('id', markerId);
+  marker.setAttribute('markerWidth','8');
+  marker.setAttribute('markerHeight','8');
+  marker.setAttribute('refX','6');
+  marker.setAttribute('refY','3');
+  marker.setAttribute('orient','auto');
+  const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  poly.setAttribute('points','0 0, 8 3, 0 6');
+  poly.setAttribute('fill', color);
+  marker.appendChild(poly);
+  defs.appendChild(marker);
+
+  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('id', id);
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+  line.setAttribute('stroke', color);
+  line.setAttribute('stroke-width', strokeWidth);
+  line.setAttribute('marker-end', `url(#${markerId})`);
+  line.setAttribute('stroke-linecap','round');
+  if (temp) { line.setAttribute('opacity','0.6'); line.setAttribute('stroke-dasharray','6,4'); }
+
+  if (!temp) {
+    line.style.cursor = 'pointer';
+    line.style.pointerEvents = 'stroke';
+    line.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      showCtxMenuFor(e, null, line, marker);
+    });
+  }
+  arrowSvg.appendChild(line);
+  return line;
+}
+
+// ══════════════════════════════════════════════
+//  MARKERS
+// ══════════════════════════════════════════════
+function placeMarker(pos) {
+  const el = document.createElement('div');
+  el.className = 'marker';
+  el.style.left = pos.x + 'px';
+  el.style.top  = pos.y + 'px';
+
+  const icon = document.createElement('div');
+  icon.className = 'marker-icon';
+
+  // Determine icon content
+  const def = MARKER_DEFS.find(d => d.key === markerIcon) || MARKER_DEFS[0];
+  icon.style.background = currentColor + 'cc';
+  icon.style.borderColor = currentColor;
+  if (def.type === 'img') {
+    const img = document.createElement('img');
+    img.src = def.src;
+    img.alt = def.label;
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
+    icon.appendChild(img);
+  } else {
+    icon.textContent = def.char;
+    icon.style.fontSize = '16px';
+  }
+  // Store key for later reference
+  el.dataset.iconKey = def.key;
+
+  const label = document.createElement('div');
+  label.className = 'marker-label';
+  label.textContent = '';
+  label.style.display = 'none';
+
+  el.appendChild(icon);
+  el.appendChild(label);
+  markersLayer.appendChild(el);
+
+  el.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    selectedMarker = el;
+    showCtxMenuFor(e, el, null, null);
+  });
+
+  let dragging = false, dx=0, dy=0;
+  icon.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    dragging = true;
+    dx = e.clientX / scale - parseFloat(el.style.left);
+    dy = e.clientY / scale - parseFloat(el.style.top);
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    el.style.left = (e.clientX / scale - dx) + 'px';
+    el.style.top  = (e.clientY / scale - dy) + 'px';
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  history.push({ type: 'marker', el });
+}
+
+// ══════════════════════════════════════════════
+//  CONTEXT MENU
+// ══════════════════════════════════════════════
+let ctxTarget = { marker: null, arrowLine: null, arrowMarker: null };
+
+function showCtxMenuFor(e, marker, arrowLine, arrowMarker) {
+  ctxTarget = { marker, arrowLine, arrowMarker };
+  ctxMenu.style.left = e.clientX + 'px';
+  ctxMenu.style.top  = e.clientY + 'px';
+  ctxMenu.style.display = 'block';
+  ctxMenu.children[0].style.display = marker ? '' : 'none';
+  ctxMenu.children[1].style.display = '';
+}
+
+function clearCtxMenu() {
+  ctxMenu.style.display = 'none';
+  ctxTarget = { marker: null, arrowLine: null, arrowMarker: null };
+}
+
+document.addEventListener('click', clearCtxMenu);
+document.addEventListener('contextmenu', e => { if (e.target === canvas || e.target === viewport) clearCtxMenu(); });
+
+window.ctxAction = function(action) {
+  if (action === 'delete') {
+    if (ctxTarget.marker) ctxTarget.marker.remove();
+    if (ctxTarget.arrowLine) { ctxTarget.arrowLine.remove(); ctxTarget.arrowMarker?.remove(); }
+  }
+  if (action === 'label' && ctxTarget.marker) {
+    const el = ctxTarget.marker;
+    const rect = el.getBoundingClientRect();
+    labelInput.value = el.querySelector('.marker-label').textContent;
+    labelPopup.style.left = rect.left + 'px';
+    labelPopup.style.top  = (rect.top - 50) + 'px';
+    labelPopup.style.display = 'flex';
+    labelInput.focus();
+    window._editingMarker = el;
+  }
+  if (action === 'color') {
+    const target = ctxTarget.marker?.querySelector('.marker-icon') || ctxTarget.arrowLine;
+    if (target) {
+      const c = prompt('Enter hex color (e.g. #ff0000):', currentColor);
+      if (c && /^#[0-9a-f]{3,6}$/i.test(c)) {
+        if (ctxTarget.marker) {
+          const iconEl = ctxTarget.marker.querySelector('.marker-icon');
+          // Only apply color to emoji markers, not image markers
+          if (!iconEl.querySelector('img')) {
+            target.style.background = c + 'cc';
+            target.style.borderColor = c;
+          }
+        }
+        if (ctxTarget.arrowLine) {
+          ctxTarget.arrowLine.setAttribute('stroke', c);
+          ctxTarget.arrowMarker?.querySelector('polygon')?.setAttribute('fill', c);
+        }
+      }
+    }
+  }
+  clearCtxMenu();
+};
+
+window.confirmLabel = function() {
+  if (window._editingMarker) {
+    const lbl = window._editingMarker.querySelector('.marker-label');
+    lbl.textContent = labelInput.value.trim();
+    lbl.style.display = lbl.textContent ? '' : 'none';
+    window._editingMarker = null;
+  }
+  labelPopup.style.display = 'none';
+};
+labelInput.addEventListener('keydown', e => { if (e.key === 'Enter') confirmLabel(); });
+
+// ══════════════════════════════════════════════
+//  UNDO / CLEAR
+// ══════════════════════════════════════════════
+window.undoLast = function() {
+  const entry = history.pop();
+  if (!entry) return;
+  if (entry.type === 'stroke') {
+    const prev = history.filter(h => h.type === 'stroke').slice(-1)[0];
+    if (prev) {
+      const img = new Image();
+      img.onload = () => { ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0); };
+      img.src = prev.snap;
+    } else {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+  }
+  if (entry.type === 'arrow') entry.el?.remove();
+  if (entry.type === 'marker') entry.el?.remove();
+};
+
+window.clearAll = function() {
+  if (!confirm('Clear all drawings, arrows and markers?')) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  while (arrowSvg.lastChild) arrowSvg.removeChild(arrowSvg.lastChild);
+  markersLayer.innerHTML = '';
+  history.length = 0;
+};
+
+// ══════════════════════════════════════════════
+//  SCREENSHOT
+// ══════════════════════════════════════════════
+window.screenshot = async function() {
+  const btn = document.getElementById('btn-screenshot');
+  btn.textContent = '⏳ SAVING...';
+  btn.disabled = true;
+
+  const W = canvas.width;
+  const H = canvas.height;
+
+  // Offscreen canvas at full map resolution
+  const shot = document.createElement('canvas');
+  shot.width  = W;
+  shot.height = H;
+  const sctx = shot.getContext('2d');
+
+  // 1. Draw map background
+  if (mapBg.naturalWidth) {
+    sctx.drawImage(mapBg, 0, 0, W, H);
+  }
+
+  // 2. Draw strokes / erased areas from the draw canvas
+  sctx.drawImage(canvas, 0, 0);
+
+  // 3. Render SVG arrows to an image and draw it
+  await new Promise(resolve => {
+    const svgEl   = arrowSvg;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url     = URL.createObjectURL(svgBlob);
+    const img     = new Image();
+    img.onload = () => {
+      sctx.drawImage(img, 0, 0, W, H);
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+    img.src = url;
+  });
+
+  // 4. Render each marker div using its position and content
+  const layerRect = markersLayer.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+
+  const markerEls = markersLayer.querySelectorAll('.marker');
+  for (const markerEl of markerEls) {
+    // Position is stored in style.left / style.top in map coords
+    const mx = parseFloat(markerEl.style.left);
+    const my = parseFloat(markerEl.style.top);
+
+    const iconEl = markerEl.querySelector('.marker-icon');
+
+    if (iconEl) {
+      const r  = 16;
+      const bg = iconEl.style.background || '#888';
+      sctx.save();
+      sctx.beginPath();
+      sctx.arc(mx, my, r, 0, Math.PI * 2);
+      sctx.fillStyle = bg;
+      sctx.fill();
+      sctx.strokeStyle = iconEl.style.borderColor || '#fff';
+      sctx.lineWidth   = 2;
+      sctx.stroke();
+      // Clip to circle for image markers
+      sctx.clip();
+      const imgEl = iconEl.querySelector('img');
+      if (imgEl && imgEl.complete && imgEl.naturalWidth) {
+        sctx.drawImage(imgEl, mx - r, my - r, r * 2, r * 2);
+      } else {
+        sctx.font         = '14px sans-serif';
+        sctx.textAlign    = 'center';
+        sctx.textBaseline = 'middle';
+        sctx.fillStyle    = '#fff';
+        sctx.fillText(iconEl.textContent, mx, my);
+      }
+      sctx.restore();
+    }
+
+    // Draw label if visible
+    const labelEl = markerEl.querySelector('.marker-label');
+    if (labelEl && labelEl.style.display !== 'none' && labelEl.textContent) {
+      const lw = labelEl.offsetWidth  || 60;
+      const lh = labelEl.offsetHeight || 14;
+      sctx.save();
+      sctx.fillStyle    = 'rgba(0,0,0,0.75)';
+      sctx.beginPath();
+      sctx.roundRect(mx - lw / 2, my + 18, lw, lh + 4, 2);
+      sctx.fill();
+      sctx.fillStyle    = '#fff';
+      sctx.font         = 'bold 10px Rajdhani, sans-serif';
+      sctx.textAlign    = 'center';
+      sctx.textBaseline = 'top';
+      sctx.fillText(labelEl.textContent, mx, my + 20);
+      sctx.restore();
+    }
+  }
+
+  // 5. Download
+  shot.toBlob(blob => {
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href     = url;
+    link.download = 'gvg-map-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.png';
+    link.click();
+    URL.revokeObjectURL(url);
+
+    btn.textContent = '📷 SCREENSHOT';
+    btn.disabled    = false;
+  }, 'image/png');
+};
+
+// ══════════════════════════════════════════════
+//  TOUCH DRAWING / ARROW / MARKER ON CANVAS
+// ══════════════════════════════════════════════
+function canvasPosFromTouch(t) {
+  const rect = viewport.getBoundingClientRect();
+  return {
+    x: (t.clientX - rect.left - panX) / scale,
+    y: (t.clientY - rect.top  - panY) / scale,
+  };
+}
+
+canvas.addEventListener('touchstart', e => {
+  // Only handle single-finger touches (two-finger = pinch-zoom handled above)
+  if (e.touches.length !== 1) return;
+  if (mode === 'pan') return;
+  e.preventDefault();
+  e.stopPropagation();
+  const t = e.touches[0];
+  const p = canvasPosFromTouch(t);
+  clearCtxMenu();
+
+  if (mode === 'draw' || mode === 'erase') {
+    isDrawing = true;
+    drawPath = [p];
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+  if (mode === 'arrow') {
+    arrowStart = p;
+  }
+  if (mode === 'marker') {
+    markerDownPos = p;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length !== 1) return;
+  if (mode === 'pan') return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const p = canvasPosFromTouch(t);
+
+  if (isDrawing && (mode === 'draw' || mode === 'erase')) {
+    drawPath.push(p);
+    ctx.lineWidth = mode === 'erase' ? strokeWidth * 4 : strokeWidth;
+    ctx.strokeStyle = mode === 'erase' ? 'rgba(0,0,0,1)' : currentColor;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalCompositeOperation = mode === 'erase' ? 'destination-out' : 'source-over';
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+
+  if (mode === 'arrow' && arrowStart) {
+    if (tempArrow) tempArrow.remove();
+    tempArrow = drawArrow(arrowStart.x, arrowStart.y, p.x, p.y, currentColor, true);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  if (mode === 'pan') return;
+  const changedTouch = e.changedTouches[0];
+  const p = canvasPosFromTouch(changedTouch);
+
+  if (mode === 'marker' && markerDownPos) {
+    placeMarker(markerDownPos);
+    markerDownPos = null;
+  }
+
+  if (isDrawing) {
+    isDrawing = false;
+    ctx.globalCompositeOperation = 'source-over';
+    const snap = canvas.toDataURL();
+    history.push({ type: 'stroke', snap });
+  }
+
+  if (mode === 'arrow' && arrowStart) {
+    if (tempArrow) tempArrow.remove();
+    tempArrow = null;
+    const dist = Math.hypot(p.x - arrowStart.x, p.y - arrowStart.y);
+    if (dist > 10) {
+      const arrow = drawArrow(arrowStart.x, arrowStart.y, p.x, p.y, currentColor, false);
+      history.push({ type: 'arrow', el: arrow });
+    }
+    arrowStart = null;
+  }
+}, { passive: false });
+
+// Also handle touch dragging of markers
+(function patchMarkerTouch() {
+  // Delegated: re-attach on each placeMarker via mutation observer
+  markersLayer.addEventListener('touchstart', e => {
+    const el = e.target.closest('.marker');
+    if (!el) return;
+    if (e.touches.length !== 1) return;
+    e.stopPropagation();
+    const t = e.touches[0];
+    let ox = t.clientX / scale - parseFloat(el.style.left);
+    let oy = t.clientY / scale - parseFloat(el.style.top);
+    let moved = false;
+
+    const onMove = ev => {
+      if (ev.touches.length !== 1) return;
+      ev.preventDefault();
+      moved = true;
+      const tt = ev.touches[0];
+      el.style.left = (tt.clientX / scale - ox) + 'px';
+      el.style.top  = (tt.clientY / scale - oy) + 'px';
+    };
+    const onEnd = ev => {
+      markersLayer.removeEventListener('touchmove', onMove);
+      markersLayer.removeEventListener('touchend', onEnd);
+      // Long-press → context menu (handled separately)
+    };
+    markersLayer.addEventListener('touchmove', onMove, { passive: false });
+    markersLayer.addEventListener('touchend', onEnd);
+  }, { passive: true });
+})();
+
+// Also close topbar menu when a mode is set on mobile
+const origSetMode = setMode;
+
+// ══════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'd') setMode('draw');
+  if (e.key === 'a') setMode('arrow');
+  if (e.key === 'm') setMode('marker');
+  if (e.key === 'p') setMode('pan');
+  if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undoLast(); }
+  if (e.key === '+' || e.key === '=') zoomBy(0.15);
+  if (e.key === '-') zoomBy(-0.15);
+  if (e.key === '0') resetView();
+  if (e.key === 'r') setTeam('red');
+  if (e.key === 'b') setTeam('blue');
+  if (e.key === 'Escape') { clearCtxMenu(); labelPopup.style.display='none'; }
+});
+
+window.addEventListener('resize', resetView);
+</script>
+</body>
+</html>
