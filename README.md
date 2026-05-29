@@ -1,6 +1,7 @@
 # GvG Strategy Board – Where Winds Meet
 
 Interactive tactical planning board for Guild vs Guild coordination, map drawing, and strategy visualization.
+https://windocode.github.io/jubilant-potato/ 
 
 ---
 
@@ -88,4 +89,4 @@ The board includes a responsive mobile interface with:
 - Optimized touch hitboxes
 
 ---
-#c0392b
+
